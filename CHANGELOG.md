@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - DuckDB query plans rendered with `physical_plan` written onto the plan's own first line.
 - DuckDB query plans shown as raw text instead of a tree.
+- Enum columns in the ER diagram showing a truncated fragment of their values instead of the type.
 - Parse error on any MongoDB filter written in shell syntax, such as `db.orders.find({status: 1})`.
 - MongoDB `.sort()` and `.projection()` silently ignored when written with unquoted keys.
 - Compare & Sync unable to drop an overloaded PostgreSQL routine, or any trigger.

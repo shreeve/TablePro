@@ -108,10 +108,9 @@ enum ERDiagramNodeRenderer {
                 anchor: .leading
             )
 
-            // Column type — truncate long types (e.g. enum values) to fit node width
-            let displayType = (col.dataType as NSString).length > maxTypeChars
-                ? String(col.dataType.prefix(maxTypeChars)) + "\u{2026}"
-                : col.dataType
+            let displayType = ERDiagramColumnTypeLabel.label(
+                for: col.dataType, maxCharacters: maxTypeChars
+            )
             let typeText = Text(displayType)
                 .font(.system(size: Self.columnTypePointSize * scale, design: .monospaced))
                 .foregroundStyle(.secondary)
