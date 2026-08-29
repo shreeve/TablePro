@@ -21,8 +21,10 @@ enum ExplainPlanFormatDefaults {
             return .sqliteQueryPlan
         case .cockroachdb:
             return .cockroachText
-        case .clickhouse, .duckdb:
+        case .clickhouse:
             return .indentedText
+        case .duckdb, .duckdbHarbor:
+            return .duckdbJson
         case .dameng:
             return .damengText
         default:

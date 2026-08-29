@@ -53,7 +53,11 @@ struct ExplainPlanFormatResolutionTests {
         #expect(ExplainFormatResolver.resolve(declared: .plainText, databaseType: .libsql) == .sqliteQueryPlan)
         #expect(ExplainFormatResolver.resolve(declared: .plainText, databaseType: .turso) == .sqliteQueryPlan)
         #expect(ExplainFormatResolver.resolve(declared: .plainText, databaseType: .cockroachdb) == .cockroachText)
-        #expect(ExplainFormatResolver.resolve(declared: .plainText, databaseType: .duckdb) == .indentedText)
+        #expect(ExplainFormatResolver.resolve(declared: .plainText, databaseType: .duckdb) == .duckdbJson)
+        #expect(
+            ExplainFormatResolver.resolve(declared: .plainText, databaseType: .duckdbHarbor) == .duckdbJson
+        )
+        #expect(ExplainFormatResolver.resolve(declared: .plainText, databaseType: .clickhouse) == .indentedText)
         #expect(ExplainFormatResolver.resolve(declared: .plainText, databaseType: .dameng) == .damengText)
     }
 

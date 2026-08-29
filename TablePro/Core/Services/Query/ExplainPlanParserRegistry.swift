@@ -25,6 +25,8 @@ enum ExplainPlanParserRegistry {
             return IndentedTextPlanParser()
         case .damengText:
             return DamengPlanParser()
+        case .duckdbJson:
+            return DuckDBPlanParser()
         default:
             return nil
         }

@@ -699,7 +699,12 @@ extension PluginMetadataRegistry {
                 isDownloadable: true, primaryUrlScheme: "duckdb", parameterStyle: .dollar,
                 navigationModel: .standard,
                 explainVariants: [
-                    ExplainVariant(id: "explain", label: "EXPLAIN", sqlPrefix: "EXPLAIN", format: .indentedText),
+                    ExplainVariant(
+                        id: "explain",
+                        label: "EXPLAIN",
+                        sqlPrefix: "EXPLAIN (FORMAT JSON)",
+                        format: .duckdbJson
+                    ),
                 ],
                 pathFieldRole: .database,
                 supportsHealthMonitor: false, urlSchemes: ["duckdb", "quack"],
@@ -756,7 +761,12 @@ extension PluginMetadataRegistry {
                 isDownloadable: false, primaryUrlScheme: "duckdbharbor", parameterStyle: .questionMark,
                 navigationModel: .standard,
                 explainVariants: [
-                    ExplainVariant(id: "logical", label: "Explain", sqlPrefix: "EXPLAIN"),
+                    ExplainVariant(
+                        id: "logical",
+                        label: "Explain",
+                        sqlPrefix: "EXPLAIN (FORMAT JSON)",
+                        format: .duckdbJson
+                    ),
                     ExplainVariant(id: "analyze", label: "Explain Analyze", sqlPrefix: "EXPLAIN ANALYZE"),
                 ],
                 pathFieldRole: .database,

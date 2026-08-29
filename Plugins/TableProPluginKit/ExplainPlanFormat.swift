@@ -20,4 +20,5 @@ public extension ExplainPlanFormat {
     static let cockroachText = ExplainPlanFormat(rawValue: "cockroachText")
     static let indentedText = ExplainPlanFormat(rawValue: "indentedText")
     static let damengText = ExplainPlanFormat(rawValue: "damengText")
+    static let duckdbJson = ExplainPlanFormat(rawValue: "duckdbJson")
 }
