@@ -26,6 +26,9 @@ final class HarborPlugin: NSObject, TableProPlugin, DriverPlugin {
     static let requiresAuthentication = false
     static let brandColorHex = "#FFF000"
     static let queryLanguageName = "SQL"
+    // DuckDB's placeholder, and what the app emits when it builds a bound
+    // statement for this driver.
+    static let parameterStyle: ParameterStyle = .questionMark
     static let editorLanguage: EditorLanguage = .sql
 
     // A berth serves one database. DuckDB can ATTACH more and the wire would

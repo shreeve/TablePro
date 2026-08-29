@@ -44,8 +44,9 @@ public actor HarborClient {
         return request
     }
 
-    private func sqlBody(_ sql: String, queryID: String?) throws -> Data {
+    private func sqlBody(_ sql: String, params: [HarborParam], queryID: String?) throws -> Data {
         var payload: [String: Any] = ["sql": sql]
+        if !params.isEmpty { payload["params"] = params.map { $0.jsonValue } }
         if let queryID { payload["queryId"] = queryID }
         // Give harbor the same deadline the client is holding itself to, so a
         // timeout stops the work instead of merely stopping the waiting.
@@ -59,10 +60,11 @@ public actor HarborClient {
     /// Run one statement and collect every row.
     public func execute(
         _ sql: String,
+        params: [HarborParam] = [],
         queryID: String = UUID().uuidString
     ) async throws -> HarborResultSet {
         var result = HarborResultSet()
-        for try await event in stream(sql, queryID: queryID) {
+        for try await event in stream(sql, params: params, queryID: queryID) {
             switch event {
             case .schema(let columns): result.columns = columns
             case .row(let values): result.rows.append(values)
@@ -89,12 +91,13 @@ public actor HarborClient {
     /// guarantee away on its own side.
     public nonisolated func stream(
         _ sql: String,
+        params: [HarborParam] = [],
         queryID: String = UUID().uuidString
     ) -> AsyncThrowingStream<HarborEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    try await self.pump(sql, queryID: queryID, into: continuation)
+                    try await self.pump(sql, params: params, queryID: queryID, into: continuation)
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
@@ -106,10 +109,11 @@ public actor HarborClient {
 
     private func pump(
         _ sql: String,
+        params: [HarborParam],
         queryID: String,
         into continuation: AsyncThrowingStream<HarborEvent, Error>.Continuation
     ) async throws {
-        let request = try request(path: "/sql", method: "POST", body: try sqlBody(sql, queryID: queryID))
+        let request = try request(path: "/sql", method: "POST", body: try sqlBody(sql, params: params, queryID: queryID))
         let (bytes, response) = try await session.bytes(for: request)
         try await Self.check(response, draining: bytes)
 

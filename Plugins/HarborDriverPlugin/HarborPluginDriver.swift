@@ -186,6 +186,30 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
         }
     }
 
+    /// Bind, rather than inherit PluginKit's default — which substitutes each
+    /// value into the SQL as a literal and re-parses the result. That default
+    /// is the app's whole write path: every grid edit, every filtered read,
+    /// every imported row. Harbor takes positional `params` and DuckDB binds
+    /// them, so the value never becomes syntax and a cell containing a quote
+    /// is data rather than an injection.
+    func executeParameterized(
+        query: String,
+        parameters: [PluginCellValue]
+    ) async throws -> PluginQueryResult {
+        guard let client else { throw HarborError.notConnected }
+        let start = Date()
+        let result = try await client.execute(query, params: parameters.map(Self.param))
+        return Self.pluginResult(result, executionTime: Date().timeIntervalSince(start))
+    }
+
+    static func param(_ value: PluginCellValue) -> HarborParam {
+        switch value {
+        case .null: return .null
+        case .text(let text): return .text(text)
+        case .bytes(let data): return .bytes(data)
+        }
+    }
+
     func executeBoundedQuery(query: String, rowCap: Int) async throws -> PluginQueryResult? {
         try await boundedQueryFromStream(query: query, rowCap: rowCap)
     }
