@@ -20,7 +20,7 @@ final class HarborPlugin: NSObject, TableProPlugin, DriverPlugin {
     // the DuckDB mark is honest about what is on the other end.
     static let iconName = "duckdb-icon"
     static let defaultPort = 9_495
-    static let isDownloadable = true
+    static let isDownloadable = false
 
     static let connectionMode: ConnectionMode = .network
     static let requiresAuthentication = false

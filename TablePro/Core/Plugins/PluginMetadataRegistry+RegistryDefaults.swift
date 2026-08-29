@@ -753,7 +753,7 @@ extension PluginMetadataRegistry {
             ("DuckDBHarbor", PluginMetadataSnapshot(
                 displayName: "DuckDB Harbor", iconName: "duckdb-icon", defaultPort: 9_495,
                 requiresAuthentication: false, supportsForeignKeys: true, supportsSchemaEditing: true,
-                isDownloadable: true, primaryUrlScheme: "duckdbharbor", parameterStyle: .questionMark,
+                isDownloadable: false, primaryUrlScheme: "duckdbharbor", parameterStyle: .questionMark,
                 navigationModel: .standard,
                 explainVariants: [
                     ExplainVariant(id: "logical", label: "Explain", sqlPrefix: "EXPLAIN"),
