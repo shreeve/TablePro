@@ -60,4 +60,19 @@ struct ExplainVariantFormatTests {
         #expect(variant.format.rawValue == "someFutureEngine")
         #expect(variant.format != .plainText)
     }
+
+    /// A plugin's own statics replace the curated snapshot wholesale, so a variant that names the
+    /// JSON parser while asking for DuckDB's box-drawing default renders as raw text. That shipped
+    /// once because the curated entry was updated and the plugin static was not.
+    @Test("Every duckdbJson variant asks DuckDB for JSON")
+    func duckdbJsonVariantsRequestJson() {
+        for type in DatabaseType.allKnownTypes {
+            for variant in type.explainVariants where variant.format == .duckdbJson {
+                #expect(
+                    variant.sqlPrefix.uppercased().contains("FORMAT JSON"),
+                    "\(type.rawValue) variant '\(variant.id)' parses JSON but runs \(variant.sqlPrefix)"
+                )
+            }
+        }
+    }
 }
