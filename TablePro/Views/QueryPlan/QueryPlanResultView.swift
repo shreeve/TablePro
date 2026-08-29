@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import TableProPluginKit
 
 enum QueryPlanViewMode: String, CaseIterable, Identifiable {
     case diagram
@@ -68,6 +69,7 @@ struct QueryPlanResultView: View {
     let executionTime: TimeInterval?
     let plan: QueryPlan?
     let planContext: QueryPlanContext?
+    let planFormat: ExplainPlanFormat
 
     @AppStorage(PreferenceKeys.queryPlanRawFontSize.name) private var fontSize: Double = 13
     @State private var showCopyConfirmation = false
@@ -86,12 +88,14 @@ struct QueryPlanResultView: View {
         rawText: String,
         executionTime: TimeInterval?,
         plan: QueryPlan?,
-        planContext: QueryPlanContext? = nil
+        planContext: QueryPlanContext? = nil,
+        planFormat: ExplainPlanFormat = .plainText
     ) {
         self.rawText = rawText
         self.executionTime = executionTime
         self.plan = plan
         self.planContext = planContext
+        self.planFormat = planFormat
     }
 
     /// Compare is offered only when there is something to compare: a plan the app could read, and a
@@ -131,7 +135,9 @@ struct QueryPlanResultView: View {
 
         case .rawOnly(let text):
             VStack(spacing: 0) {
-                unparsedBanner
+                if parserWasAvailable {
+                    unparsedBanner
+                }
                 DDLTextView(ddl: text, fontSize: $fontSize)
             }
 
@@ -147,6 +153,13 @@ struct QueryPlanResultView: View {
                 QueryPlanComparisonView(model: comparison)
             }
         }
+    }
+
+    /// An engine whose output has no parser was never going to produce a tree, so reporting that
+    /// one could not be read states a failure that never happened. DuckDB's box art is the case:
+    /// it is the plan, drawn by DuckDB, and it is what the pane is meant to show.
+    private var parserWasAvailable: Bool {
+        ExplainPlanParserRegistry.parser(for: planFormat) != nil
     }
 
     private var unparsedBanner: some View {

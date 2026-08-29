@@ -159,12 +159,14 @@ final class HarborPlugin: NSObject, TableProPlugin, DriverPlugin {
     )
 
     // A plugin's own statics replace the curated snapshot wholesale, so the SQL and the format
-    // have to agree here rather than in the registry. DuckDB's default EXPLAIN is box-drawing art
-    // laid out in two dimensions, which no parser can read; the JSON form carries the same tree.
-    // EXPLAIN ANALYZE has no working JSON form, so it stays plain and renders as raw text.
+    // have to agree here rather than in the registry. DuckDB's own box art is the default because
+    // it shows projections, filters and row counts in one view; the JSON form carries the same
+    // tree in a shape the outline, the detail pane and plan comparison can read. EXPLAIN ANALYZE
+    // has no working JSON form, so it stays plain and renders as raw text.
     static let explainVariants: [ExplainVariant] = [
+        ExplainVariant(id: "logical", label: "Explain", sqlPrefix: "EXPLAIN", format: .duckdbBoxTree),
         ExplainVariant(
-            id: "logical", label: "Explain", sqlPrefix: "EXPLAIN (FORMAT JSON)", format: .duckdbJson
+            id: "json", label: "Explain (JSON)", sqlPrefix: "EXPLAIN (FORMAT JSON)", format: .duckdbJson
         ),
         ExplainVariant(id: "analyze", label: "Explain Analyze", sqlPrefix: "EXPLAIN ANALYZE"),
     ]

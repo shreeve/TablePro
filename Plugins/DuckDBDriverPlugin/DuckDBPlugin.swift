@@ -805,7 +805,7 @@ final class DuckDBPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
     // MARK: - EXPLAIN
 
     func buildExplainQuery(_ sql: String) -> String? {
-        "EXPLAIN (FORMAT JSON) \(sql)"
+        "EXPLAIN \(sql)"
     }
 
     // MARK: - View Templates

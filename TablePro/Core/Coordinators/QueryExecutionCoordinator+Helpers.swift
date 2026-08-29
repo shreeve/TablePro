@@ -329,7 +329,8 @@ extension QueryExecutionCoordinator {
                     sql: sql,
                     executionTime: executionTime,
                     anchor: anchor,
-                    planContext: captured.context
+                    planContext: captured.context,
+                    format: routed.format
                 )]
             )
             if tab.display.isResultsCollapsed {

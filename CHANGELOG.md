@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - DuckDB Harbor in the connection chooser, with its own docs page.
 - Schema editing for DuckDB Harbor: add, modify, drop and rename columns, create and drop indexes, rename and truncate tables.
 - Multi-statement scripts for DuckDB Harbor, split client-side and sent one statement per request.
+- Explain (JSON) for DuckDB and DuckDB Harbor, read as a tree with a node detail pane and plan comparison.
 
 ### Changed
 
@@ -25,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - DuckDB query plans rendered with `physical_plan` written onto the plan's own first line.
-- DuckDB query plans shown as raw text instead of a tree.
+- DuckDB query plans reported as unreadable when the pane was showing DuckDB's own plan render.
 - Enum columns in the ER diagram showing a truncated fragment of their values instead of the type.
 - Parse error on any MongoDB filter written in shell syntax, such as `db.orders.find({status: 1})`.
 - MongoDB `.sort()` and `.projection()` silently ignored when written with unquoted keys.

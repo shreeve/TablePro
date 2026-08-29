@@ -8,6 +8,7 @@
 import Foundation
 import Observation
 import os
+import TableProPluginKit
 
 /// One execution's product: its rows, and the facts about how they were produced.
 ///
@@ -58,6 +59,7 @@ final class ResultSet: Identifiable {
     /// Where this plan sits in the statement's saved history, so the plan pane can offer a
     /// comparison without asking a coordinator anything.
     var explainPlanContext: QueryPlanContext?
+    var explainPlanFormat: ExplainPlanFormat?
 
     var isExplainResult: Bool { explainRawText != nil }
 

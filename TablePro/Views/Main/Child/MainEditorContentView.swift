@@ -810,7 +810,8 @@ struct MainEditorContentView: View {
             rawText: resultSet.explainRawText ?? "",
             executionTime: resultSet.executionTime,
             plan: resultSet.queryPlan,
-            planContext: resultSet.explainPlanContext
+            planContext: resultSet.explainPlanContext,
+            planFormat: resultSet.explainPlanFormat ?? .plainText
         )
     }
 

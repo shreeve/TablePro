@@ -75,4 +75,24 @@ struct ExplainVariantFormatTests {
             }
         }
     }
+    /// The banner that says a plan could not be read as a tree is only honest when a parser ran.
+    /// A format with no parser is the pane showing the engine's own render, not a failure.
+    @Test("A format with no parser is not treated as a failed parse")
+    func boxTreeHasNoParser() {
+        #expect(ExplainPlanParserRegistry.parser(for: .duckdbBoxTree) == nil)
+        #expect(ExplainPlanParserRegistry.parser(for: .plainText) == nil)
+        #expect(ExplainPlanParserRegistry.parser(for: .duckdbJson) != nil)
+    }
+
+    @Test("Every duckdbBoxTree variant runs a bare EXPLAIN")
+    func boxTreeVariantsRunBareExplain() {
+        for type in DatabaseType.allKnownTypes {
+            for variant in type.explainVariants where variant.format == .duckdbBoxTree {
+                #expect(
+                    !variant.sqlPrefix.uppercased().contains("FORMAT JSON"),
+                    "\(type.rawValue) variant '\(variant.id)' asks for JSON but declares box art"
+                )
+            }
+        }
+    }
 }

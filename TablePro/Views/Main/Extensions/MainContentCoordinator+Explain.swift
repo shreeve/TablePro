@@ -210,7 +210,8 @@ extension MainContentCoordinator {
                                 sql: request.sql,
                                 executionTime: fetchResult.executionTime,
                                 anchor: anchor,
-                                planContext: captured.context
+                                planContext: captured.context,
+                                format: request.format
                             )]
                         )
                         if tab.display.isResultsCollapsed {

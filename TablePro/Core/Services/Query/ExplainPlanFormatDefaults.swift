@@ -24,7 +24,7 @@ enum ExplainPlanFormatDefaults {
         case .clickhouse:
             return .indentedText
         case .duckdb, .duckdbHarbor:
-            return .duckdbJson
+            return .duckdbBoxTree
         case .dameng:
             return .damengText
         default:

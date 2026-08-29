@@ -137,7 +137,8 @@ struct DuckDBPlanParserTests {
     @Test("The registry hands duckdbJson to this parser")
     func registryWiring() {
         #expect(ExplainPlanParserRegistry.parser(for: .duckdbJson) is DuckDBPlanParser)
-        #expect(ExplainPlanFormatDefaults.format(for: .duckdb) == .duckdbJson)
-        #expect(ExplainPlanFormatDefaults.format(for: .duckdbHarbor) == .duckdbJson)
+        #expect(ExplainPlanFormatDefaults.format(for: .duckdb) == .duckdbBoxTree)
+        #expect(ExplainPlanFormatDefaults.format(for: .duckdbHarbor) == .duckdbBoxTree)
+        #expect(ExplainPlanParserRegistry.parser(for: .duckdbBoxTree) == nil)
     }
 }
