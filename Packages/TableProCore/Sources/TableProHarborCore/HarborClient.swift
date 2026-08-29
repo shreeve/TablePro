@@ -6,11 +6,6 @@ import Foundation
 public actor HarborClient {
     private let config: HarborClientConfig
     private let session: URLSession
-    /// The query id of the statement currently in flight, so a cancel can
-    /// name it. Harbor registers the id BEFORE executing, which is what makes
-    /// `DELETE /sql/queries/<id>` safe to send the instant we have the id —
-    /// it cannot arrive too early and be dropped.
-    private var inFlightQueryID: String?
 
     public init(config: HarborClientConfig, session: URLSession? = nil) {
         self.config = config
@@ -54,9 +49,12 @@ public actor HarborClient {
     // MARK: - Execution
 
     /// Run one statement and collect every row.
-    public func execute(_ sql: String) async throws -> HarborResultSet {
+    public func execute(
+        _ sql: String,
+        queryID: String = UUID().uuidString
+    ) async throws -> HarborResultSet {
         var result = HarborResultSet()
-        for try await event in stream(sql) {
+        for try await event in stream(sql, queryID: queryID) {
             switch event {
             case .schema(let columns): result.columns = columns
             case .row(let values): result.rows.append(values)
@@ -70,11 +68,25 @@ public actor HarborClient {
     }
 
     /// Run one statement, yielding events as they arrive off the socket.
-    public nonisolated func stream(_ sql: String) -> AsyncThrowingStream<HarborEvent, Error> {
+    ///
+    /// The caller names the query, because the caller is the only one who can
+    /// say which query a later cancel means. This used to be a single
+    /// `inFlightQueryID` on the actor, which was wrong the moment two
+    /// statements overlapped — and they overlap constantly, since the sidebar
+    /// fetches tables, schemas and routines with `async let` through this same
+    /// client. Whichever finished first cleared the slot, so Stop then
+    /// cancelled nothing; whichever started last owned it, so Stop cancelled
+    /// the wrong statement. Harbor is careful to refuse a duplicate id rather
+    /// than let a cancel be a coin flip, and the client was throwing that
+    /// guarantee away on its own side.
+    public nonisolated func stream(
+        _ sql: String,
+        queryID: String = UUID().uuidString
+    ) -> AsyncThrowingStream<HarborEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
-                    try await self.pump(sql, into: continuation)
+                    try await self.pump(sql, queryID: queryID, into: continuation)
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
@@ -86,12 +98,9 @@ public actor HarborClient {
 
     private func pump(
         _ sql: String,
+        queryID: String,
         into continuation: AsyncThrowingStream<HarborEvent, Error>.Continuation
     ) async throws {
-        let queryID = UUID().uuidString
-        inFlightQueryID = queryID
-        defer { inFlightQueryID = nil }
-
         let request = try request(path: "/sql", method: "POST", body: try sqlBody(sql, queryID: queryID))
         let (bytes, response) = try await session.bytes(for: request)
         try await Self.check(response, draining: bytes)
@@ -107,10 +116,13 @@ public actor HarborClient {
         }
     }
 
-    /// Ask harbor to cancel whatever this client is running. Safe to call
-    /// when nothing is in flight — it simply does nothing.
-    public func cancel() async {
-        guard let queryID = inFlightQueryID else { return }
+    /// Cancel one named statement. Harbor registers the id before it executes,
+    /// so this is safe to send the instant the id exists: it cannot arrive too
+    /// early and be dropped.
+    ///
+    /// Cancelling an id that already finished is a no-op on harbor's side, so
+    /// callers need not race the completion to decide whether to send it.
+    public func cancel(queryID: String) async {
         guard let request = try? request(path: "/sql/queries/\(queryID)", method: "DELETE") else { return }
         _ = try? await session.data(for: request)
     }
