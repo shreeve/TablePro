@@ -297,6 +297,7 @@ DOC_NAMES = {
     "SQL Server": "Microsoft SQL Server",
     "Oracle": "Oracle Database",
     "Dameng": "Dameng DM8",
+    "DuckDBHarbor": "DuckDB Harbor",
     "Redshift": "Amazon Redshift",
 }
 

@@ -750,6 +750,64 @@ extension PluginMetadataRegistry {
                     hidesBuiltInDatabase: true
                 )
             )),
+            ("DuckDBHarbor", PluginMetadataSnapshot(
+                displayName: "DuckDB Harbor", iconName: "duckdb-icon", defaultPort: 9_495,
+                requiresAuthentication: false, supportsForeignKeys: true, supportsSchemaEditing: true,
+                isDownloadable: true, primaryUrlScheme: "duckdbharbor", parameterStyle: .questionMark,
+                navigationModel: .standard,
+                explainVariants: [
+                    ExplainVariant(id: "logical", label: "Explain", sqlPrefix: "EXPLAIN"),
+                    ExplainVariant(id: "analyze", label: "Explain Analyze", sqlPrefix: "EXPLAIN ANALYZE"),
+                ],
+                pathFieldRole: .database,
+                supportsHealthMonitor: true, urlSchemes: [],
+                postConnectActions: [],
+                brandColorHex: "#FFF000",
+                queryLanguageName: "SQL", editorLanguage: .sql,
+                connectionMode: .network, supportsDatabaseSwitching: false,
+                supportsColumnReorder: false,
+                capabilities: PluginMetadataSnapshot.CapabilityFlags(
+                    supportsSchemaSwitching: true,
+                    supportsImport: true,
+                    supportsExport: true,
+                    supportsSSH: true,
+                    supportsSSL: true,
+                    supportsCascadeDrop: false,
+                    supportsForeignKeyDisable: false,
+                    supportsReadOnlyMode: true,
+                    supportsQueryProgress: false,
+                    requiresReconnectForDatabaseSwitch: false,
+                    supportsDropDatabase: false,
+                    supportsRenameColumn: true,
+                    supportsConnectionPooling: true,
+                    localFilePathField: .none
+                ),
+                schema: PluginMetadataSnapshot.SchemaInfo(
+                    defaultSchemaName: "main",
+                    defaultGroupName: "main",
+                    tableEntityName: "Tables",
+                    containerEntityName: "Database",
+                    defaultPrimaryKeyColumn: nil,
+                    immutableColumns: [],
+                    systemDatabaseNames: ["system", "temp"],
+                    systemSchemaNames: ["information_schema", "pg_catalog"],
+                    fileExtensions: [],
+                    databaseGroupingStrategy: .hierarchicalSchema,
+                    structureColumnFields: [.name, .type, .nullable, .defaultValue, .comment]
+                ),
+                editor: PluginMetadataSnapshot.EditorConfig(
+                    sqlDialect: duckdbDialect,
+                    statementCompletions: [],
+                    columnTypesByCategory: duckdbColumnTypes
+                ),
+                connection: PluginMetadataSnapshot.ConnectionConfig(
+                    additionalConnectionFields: Self.harborConnectionFields,
+                    category: .analytical,
+                    tagline: String(localized: "Analytical SQL over the network"),
+                    hidesBuiltInPassword: true,
+                    hidesBuiltInDatabase: true
+                )
+            )),
             ("Beancount", PluginMetadataSnapshot(
                 displayName: "Beancount", iconName: "beancount-icon", defaultPort: 0,
                 requiresAuthentication: false, supportsForeignKeys: false, supportsSchemaEditing: false,

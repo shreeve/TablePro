@@ -39,6 +39,7 @@ extension DatabaseType {
     static let dameng = DatabaseType(rawValue: "Dameng")
     static let clickhouse = DatabaseType(rawValue: "ClickHouse")
     static let duckdb = DatabaseType(rawValue: "DuckDB")
+    static let duckdbHarbor = DatabaseType(rawValue: "DuckDBHarbor")
     static let cassandra = DatabaseType(rawValue: "Cassandra")
     static let scylladb = DatabaseType(rawValue: "ScyllaDB")
     static let etcd = DatabaseType(rawValue: "etcd")
