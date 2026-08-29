@@ -30,7 +30,11 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
         // pin a connection, but a one-shot statement does not join one, and
         // claiming transactions the driver does not open would be a lie the
         // editor acts on.
-        [.multiSchema, .cancelQuery, .alterTableDDL, .truncateTable, .schemaCompare]
+        // .alterTableDDL and .truncateTable are gone with the schema-editing
+        // flags above: nothing here generates that SQL yet. .parameterizedQueries
+        // is new and earned — executeParameterized binds through harbor's
+        // params rather than pasting literals into the statement.
+        [.multiSchema, .cancelQuery, .parameterizedQueries, .schemaCompare]
     }
 
     var supportsSchemas: Bool { true }
