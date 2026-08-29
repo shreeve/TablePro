@@ -53,25 +53,19 @@ final class HarborPlugin: NSObject, TableProPlugin, DriverPlugin {
     // DuckDB declares foreign keys but does not enforce them the way a
     // transactional store does, and harbor exposes whatever the catalog says.
     static let supportsForeignKeys = true
-    // Every flag below is false because the corresponding method is not
-    // implemented yet, and the SDK's defaults do not fail alike: renameTable
-    // and renameSchema THROW, so the user gets an error dialog, while the
-    // generate*SQL family returns nil, so the editor collects a change and
-    // then quietly produces no statement. Advertising either is worse than
-    // not offering the menu item — one is a broken promise, the other is a
-    // silent one. They flip back as each generator lands.
-    static let supportsSchemaEditing = false
-    static let supportsAddColumn = false
-    static let supportsModifyColumn = false
-    static let supportsDropColumn = false
-    // Still false once the rest land: DuckDB has no ALTER TYPE and no ALTER
-    // for a primary key. Those are a table rebuild, not an in-place edit.
+    static let supportsSchemaEditing = true
+    static let supportsAddColumn = true
+    static let supportsModifyColumn = true
+    static let supportsDropColumn = true
+    static let supportsRenameColumn = true
+    static let supportsAddIndex = true
+    static let supportsDropIndex = true
+    static let supportsRenameTable = true
     static let supportsModifyPrimaryKey = false
-    static let supportsAddIndex = false
-    static let supportsDropIndex = false
-    static let supportsRenameTable = false
-    // Permanently false: DuckDB has no ALTER SCHEMA ... RENAME at all.
     static let supportsRenameSchema = false
+    static let supportsCascadeDrop = false
+    static let supportsCheckConstraints = false
+    static let supportsCheckConstraintEditing = false
 
     static let supportsSSH = true
     // Harbor is deliberately TLS-free itself: a remote berth is fronted by

@@ -152,6 +152,7 @@
               "databases/cockroachdb",
               "databases/dameng",
               "databases/duckdb",
+              "databases/duckdb-harbor",
               "databases/elasticsearch",
               "databases/etcd",
               "databases/bigquery",

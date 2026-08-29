@@ -1,0 +1,86 @@
+---
+title: DuckDB Harbor
+description: Connect to a DuckDB database served over HTTP by a Harbor berth
+---
+
+Harbor is a server that owns one DuckDB file and answers SQL over HTTP. One berth holds one database, so the connection names a port rather than a file, and several people can read and write the same database at once.
+
+The driver ships with TablePro. Nothing to install.
+
+## Quick setup
+
+1. Start a berth: `harbor add mydata.duckdb --port 9495`
+2. Read its token: `cat ~/.config/harbor/runtime/mydata.token`
+3. New Connection, DuckDBHarbor, host `127.0.0.1`, port `9495`, paste the token.
+
+## Connection settings
+
+| Field | Value |
+| --- | --- |
+| Host | The machine running the berth. `127.0.0.1` for a local one. |
+| Port | The berth's port. Default `9495`. |
+| Token | The berth's bearer token. Required unless the berth was started with `--token ''`. |
+
+There is no Database field. A berth serves the database it was started with, and pointing the connection at a different one means starting a second berth on a second port.
+
+Harbor 0.15.0 or newer. Older berths connect, but report their catalog through more round trips.
+
+## Connection URL
+
+```
+http://127.0.0.1:9495
+```
+
+The token travels in the `Authorization` header, never in the URL.
+
+## Authentication
+
+A bearer token, minted by the berth on first start and written to `~/.config/harbor/runtime/<name>.token`. Rotating it means restarting the berth with a new `--token`.
+
+## Schema editing
+
+Add, modify, drop and rename columns; create and drop indexes; rename and truncate tables. Editing a column on an indexed table takes the covering indexes down and rebuilds them in the same transaction, because DuckDB refuses `ALTER COLUMN` on a table any index depends on.
+
+An auto-incrementing column is created as a sequence plus a `DEFAULT nextval(…)`, since DuckDB has no `SERIAL` type.
+
+## Running several statements
+
+Harbor answers one statement per request, so a script is split in the driver and sent a statement at a time. Execute All Statements runs the whole editor tab; Execute runs the statement under the cursor.
+
+A `;` inside a string, a quoted identifier, a dollar-quoted block or a comment is not a split point.
+
+## SSL/TLS
+
+Harbor speaks plain HTTP and does not terminate TLS. Reach a remote berth through the SSH tab, or put Caddy in front of it and connect to that.
+
+## Limitations
+
+Foreign keys can be declared when a table is created and not added afterwards. DuckDB reports "No support for adding FOREIGN_KEY constraint": create the table with the key, or rebuild the table to add one.
+
+`ON DELETE` and `ON UPDATE` are rejected on any foreign key. Declare the key without an action and enforce the cascade in your own statements.
+
+A primary key cannot be changed or removed once a table exists, because DuckDB has no `DROP CONSTRAINT`. Adding one to a table that has none works: rebuild the table to change one that does.
+
+Check constraints cannot be added to an existing table. Declare them in the `CREATE TABLE` instead.
+
+A schema cannot be renamed. Create the new schema and move the objects.
+
+`DROP` never cascades. DuckDB refuses to drop an object another one depends on: drop the dependents first.
+
+## Troubleshooting
+
+### `only one statement per request`
+
+The statement sent to the berth contained a second statement. Harbor enforces this so an injection into an application's SQL cannot chain a new statement. Use Execute All Statements, which splits the tab and sends the parts.
+
+### Cannot alter a column while an index depends on it
+
+DuckDB reports `Dependency Error: Cannot alter entry "…" because there are entries that depend on it`. TablePro rebuilds the indexes it can see from the last schema refresh: refresh the sidebar and try again, or drop the index by hand if it is an expression index.
+
+### `unauthorized`
+
+The token does not match the berth. Read it again from `~/.config/harbor/runtime/<name>.token`, which changes whenever the berth is started with a new `--token`.
+
+## Related
+
+- [DuckDB](/databases/duckdb) for opening a `.duckdb` file directly, with no server.

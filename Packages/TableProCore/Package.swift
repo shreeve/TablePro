@@ -141,6 +141,11 @@ let package = Package(
             path: "Tests/TableProTrinoCoreTests"
         ),
         .testTarget(
+            name: "TableProHarborCoreTests",
+            dependencies: ["TableProHarborCore"],
+            path: "Tests/TableProHarborCoreTests"
+        ),
+        .testTarget(
             name: "TableProSyncTests",
             dependencies: ["TableProSync", "TableProSyncTransport", "TableProModels"],
             path: "Tests/TableProSyncTests"

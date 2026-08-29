@@ -33,15 +33,8 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
     }
 
     var capabilities: PluginCapabilities {
-        // No .transactions: harbor has leases (POST /sql/sessions/new) that
-        // pin a connection, but a one-shot statement does not join one, and
-        // claiming transactions the driver does not open would be a lie the
-        // editor acts on.
-        // .alterTableDDL and .truncateTable are gone with the schema-editing
-        // flags above: nothing here generates that SQL yet. .parameterizedQueries
-        // is new and earned — executeParameterized binds through harbor's
-        // params rather than pasting literals into the statement.
-        [.multiSchema, .cancelQuery, .parameterizedQueries, .transactions, .schemaCompare]
+        [.multiSchema, .cancelQuery, .parameterizedQueries, .transactions, .schemaCompare,
+         .alterTableDDL, .truncateTable]
     }
 
     var supportsSchemas: Bool { true }
@@ -181,8 +174,16 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
     func execute(query: String) async throws -> PluginQueryResult {
         guard let client else { throw HarborError.notConnected }
         let start = Date()
-        let result = try await client.execute(query)
-        return Self.pluginResult(result, executionTime: Date().timeIntervalSince(start))
+        let statements = HarborStatementSplitter.split(query)
+        guard statements.count > 1 else {
+            let result = try await client.execute(statements.first ?? query)
+            return Self.pluginResult(result, executionTime: Date().timeIntervalSince(start))
+        }
+        var last = HarborResultSet()
+        for statement in statements {
+            last = try await client.execute(statement)
+        }
+        return Self.pluginResult(last, executionTime: Date().timeIntervalSince(start))
     }
 
     func streamRows(query: String) -> AsyncThrowingStream<PluginStreamElement, Error> {
