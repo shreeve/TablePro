@@ -22,10 +22,16 @@ extension HarborValue {
     public static func decode(from container: inout UnkeyedDecodingContainer) throws -> HarborValue {
         if try container.decodeNil() { return .null }
         if let value = try? container.decode(Bool.self) { return .bool(value) }
-        // Decoded through Decimal, not Double: harbor sends DuckDB's exact
-        // numerics (DECIMAL, HUGEINT) and a Double round-trip would quietly
-        // round them away before anyone saw the value.
+        // Decimal first, not Double: harbor sends DuckDB's exact numerics
+        // (DECIMAL, HUGEINT) and a Double round-trip would quietly round them
+        // away before anyone saw the value.
         if let value = try? container.decode(Decimal.self) { return .number("\(value)") }
+        // Decimal's range stops short of Double's. A DOUBLE beyond it — 1e400,
+        // and anything past ~1e128 — failed the decode above and then fell all
+        // the way through to the JSON branch, which rendered it as the text
+        // "null": a real measurement displayed as, and indistinguishable from,
+        // a missing one.
+        if let value = try? container.decode(Double.self) { return .number("\(value)") }
         if let value = try? container.decode(String.self) { return .text(value) }
         if let value = try? container.decode(HarborJSON.self) { return .json(value.compactText) }
         throw HarborError.protocolViolation("Unreadable cell in row event")

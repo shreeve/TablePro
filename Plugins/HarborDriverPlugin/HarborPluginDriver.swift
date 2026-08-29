@@ -142,16 +142,20 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
                 do {
                     var headerSent = false
                     var page: [[PluginCellValue]] = []
+                    var columns: [HarborColumn] = []
                     for try await event in client.stream(query, queryID: queryID) {
                         switch event {
-                        case .schema(let columns):
+                        case .schema(let schema):
+                            columns = schema
                             continuation.yield(.header(PluginStreamHeader(
-                                columns: columns.map(\.name),
-                                columnTypeNames: columns.map(\.duckdbType)
+                                columns: schema.map(\.name),
+                                columnTypeNames: schema.map(\.duckdbType)
                             )))
                             headerSent = true
                         case .row(let values):
-                            page.append(values.map(Self.cellValue))
+                            page.append(values.enumerated().map {
+                                Self.cellValue($1, column: columns.indices.contains($0) ? columns[$0] : nil)
+                            })
                             // Batched rather than yielded one at a time: harbor
                             // streams row events, and forwarding each one alone
                             // makes the table redraw per row on a wide result.
@@ -216,8 +220,21 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
 
     // MARK: - Mapping
 
-    static func cellValue(_ value: HarborValue) -> PluginCellValue {
-        value.isNull ? .null : .text(value.displayText)
+    /// Needs the column, because one wire shape means two different things.
+    ///
+    /// Harbor emits a BLOB as a base64 string, which is indistinguishable from
+    /// a VARCHAR that happens to look like base64 — only the column's type
+    /// tells them apart. Handing a BLOB over as `.text` meant the app's binary
+    /// formatter hex-encoded the base64 CHARACTERS, so a four-byte blob
+    /// displayed as eight bytes of the wrong value, and an export wrote that
+    /// out as if it were the data.
+    static func cellValue(_ value: HarborValue, column: HarborColumn?) -> PluginCellValue {
+        if value.isNull { return .null }
+        if column?.isBlob == true, case .text(let base64) = value,
+           let data = Data(base64Encoded: base64) {
+            return .bytes(data)
+        }
+        return .text(value.displayText)
     }
 
     static func pluginResult(_ result: HarborResultSet, executionTime: TimeInterval) -> PluginQueryResult {
@@ -240,7 +257,9 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
         return PluginQueryResult(
             columns: result.columns.map(\.name),
             columnTypeNames: result.columns.map(\.duckdbType),
-            rows: result.rows.map { row in row.map(cellValue) },
+            rows: result.rows.map { row in
+                row.enumerated().map { cellValue($1, column: result.columns.indices.contains($0) ? result.columns[$0] : nil) }
+            },
             rowsAffected: result.rowCount,
             executionTime: executionTime
         )

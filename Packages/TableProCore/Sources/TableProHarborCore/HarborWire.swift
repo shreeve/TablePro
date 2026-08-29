@@ -28,6 +28,12 @@ public struct HarborColumn: Decodable, Sendable, Equatable {
         values = try? container.decode([String].self, forKey: .values)
     }
 
+    /// True for a column harbor base64-encodes on the wire. Matched on the
+    /// leading type name so BLOB inside a wider spelling still counts.
+    public var isBlob: Bool {
+        duckdbType.uppercased().hasPrefix("BLOB") || duckdbType.uppercased().hasPrefix("BYTEA")
+    }
+
     public init(name: String, duckdbType: String, lossless: Bool = true, values: [String]? = nil) {
         self.name = name
         self.duckdbType = duckdbType
