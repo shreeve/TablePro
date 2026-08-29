@@ -33,6 +33,11 @@ extension HarborPluginDriver {
         return Int(row[index].displayText)
     }
 
+    /// The snapshot entry for one table, when the last fetchTables filled it.
+    private func snapshotTable(_ table: String, schema: String) -> HarborCatalog.Table? {
+        snapshot?.tables.first { $0.name == table && $0.schema == schema }
+    }
+
     private func resolvedSchema(_ schema: String?) -> String {
         guard let schema, !schema.isEmpty else { return currentSchema ?? "main" }
         return schema
@@ -50,8 +55,13 @@ extension HarborPluginDriver {
 
     // MARK: - Objects
 
+    /// Refreshes the /catalog snapshot the per-table reads below serve from,
+    /// so expanding a schema costs one request instead of one per table per
+    /// aspect. Views are not in /catalog, so they still come from SQL and are
+    /// merged in.
     func fetchTables(schema: String?) async throws -> [PluginTableInfo] {
         let target = resolvedSchema(schema)
+        if let client { snapshot = try? await client.catalog() }
         let sql = HarborIntrospectionSQL.tables(catalog: catalog, schema: target)
         return try await rows(sql).map { row in
             // duckdb_tables().estimated_size is DuckDB's estimate, not a
@@ -70,6 +80,19 @@ extension HarborPluginDriver {
 
     func fetchColumns(table: String, schema: String?) async throws -> [PluginColumnInfo] {
         let target = resolvedSchema(schema)
+        if let entry = snapshotTable(table, schema: target) {
+            return entry.columns.map { column in
+                PluginColumnInfo(
+                    name: column.name,
+                    dataType: column.type,
+                    isNullable: !column.notNull,
+                    isPrimaryKey: column.primary || entry.primaryKey.contains(column.name),
+                    defaultValue: column.default,
+                    generationExpression: nil,
+                    generationKind: nil
+                )
+            }
+        }
         let sql = HarborIntrospectionSQL.columns(catalog: catalog, schema: target, table: table)
         return try await rows(sql).map { row in
             PluginColumnInfo(
@@ -87,6 +110,25 @@ extension HarborPluginDriver {
 
     func fetchIndexes(table: String, schema: String?) async throws -> [PluginIndexInfo] {
         let target = resolvedSchema(schema)
+        if let entry = snapshotTable(table, schema: target) {
+            // /catalog carries the index COLUMNS, which duckdb_indexes() does
+            // not expose as data — the SQL path had to leave them empty rather
+            // than parse them back out of the CREATE INDEX text and risk being
+            // wrong. Unique constraints appear here too, since to a reader of
+            // the structure pane they are the same fact.
+            let fromIndexes = entry.indexes.map {
+                PluginIndexInfo(
+                    name: $0.name,
+                    columns: ($0.columns?.isEmpty == false ? $0.columns : $0.expressions) ?? [],
+                    isUnique: $0.unique ?? false,
+                    isPrimary: false
+                )
+            }
+            let fromUnique = entry.uniqueConstraints.enumerated().map {
+                PluginIndexInfo(name: "\(table)_unique_\($0.offset + 1)", columns: $0.element.columns, isUnique: true, isPrimary: false)
+            }
+            return fromIndexes + fromUnique
+        }
         let sql = HarborIntrospectionSQL.indexes(catalog: catalog, schema: target, table: table)
         return try await rows(sql).map { row in
             // duckdb_indexes() reports the CREATE INDEX text but not the
@@ -109,6 +151,24 @@ extension HarborPluginDriver {
 
     func fetchForeignKeys(table: String, schema: String?) async throws -> [PluginForeignKeyInfo] {
         let target = resolvedSchema(schema)
+        if let entry = snapshotTable(table, schema: target) {
+            return entry.foreignKeys.flatMap { key -> [PluginForeignKeyInfo] in
+                let locals = key.columns ?? []
+                let remotes = key.refColumns ?? []
+                // Paired by position, and only as far as both lists reach: a
+                // half-described key is dropped rather than shown against the
+                // wrong column.
+                return zip(locals, remotes).map { local, remote in
+                    PluginForeignKeyInfo(
+                        name: "\(table)_\(local)_fkey",
+                        column: local,
+                        referencedTable: key.refTable ?? "",
+                        referencedColumn: remote,
+                        referencedSchema: key.refSchema ?? target
+                    )
+                }
+            }
+        }
         let sql = HarborIntrospectionSQL.foreignKeys(catalog: catalog, schema: target, table: table)
         return try await rows(sql).map { row in
             // DuckDB records the reference but enforces no action on it, so

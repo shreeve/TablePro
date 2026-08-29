@@ -156,6 +156,14 @@ public actor HarborClient {
         return try JSONDecoder().decode(HarborInfo.self, from: data)
     }
 
+    /// Harbor's own view of the catalog, in one request.
+    public func catalog() async throws -> HarborCatalog {
+        let request = try request(path: "/catalog", method: "GET")
+        let (data, response) = try await session.data(for: request)
+        try Self.check(response, body: data)
+        return try JSONDecoder().decode(HarborCatalog.self, from: data)
+    }
+
     /// A cheap authenticated pulse that keeps an idle-exit berth moored
     /// without taking a lease or a DuckDB connection.
     ///

@@ -15,6 +15,13 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
     /// the editor. Catalog reads mint their own ids and are never cancelled by
     /// the user, so they must not be able to overwrite this.
     private var _streamingQueryID: String?
+    /// The last /catalog snapshot, filled by fetchTables and read by the
+    /// per-table calls that immediately follow it. Scoped to one sidebar
+    /// refresh rather than held with a TTL: the app always asks for tables
+    /// before it asks about any of them, so this is the natural boundary and
+    /// there is no window where a stale entry outlives the listing it came
+    /// from.
+    private var _catalogSnapshot: HarborCatalog?
 
     static let logger = Logger(subsystem: "com.TablePro", category: "HarborPluginDriver")
 
@@ -43,6 +50,10 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
     var serverVersion: String? { lock.withLock { _serverVersion } }
 
     var client: HarborClient? { lock.withLock { _client } }
+    var snapshot: HarborCatalog? {
+        get { lock.withLock { _catalogSnapshot } }
+        set { lock.withLock { _catalogSnapshot = newValue } }
+    }
     var catalog: String { lock.withLock { _catalog } }
 
     // MARK: - Lifecycle
