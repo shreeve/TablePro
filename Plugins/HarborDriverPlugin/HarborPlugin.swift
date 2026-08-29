@@ -78,11 +78,11 @@ final class HarborPlugin: NSObject, TableProPlugin, DriverPlugin {
     // Caddy or reached through SSH. The toggle describes the URL, not harbor.
     static let supportsSSL = true
     static let supportsHealthMonitor = true
-    // Import runs many statements and needs a transaction to be safe. Harbor
-    // has leases for exactly that, and this driver does not use them yet, so
-    // an import would be N unrelated statements with no rollback: a failure
-    // halfway leaves half the rows in. Export only reads.
-    static let supportsImport = false
+    // Import runs many statements and needs a transaction to be safe. It has
+    // one now: ImportDataSinkAdapter calls beginTransaction/rollbackTransaction,
+    // and those open a harbor lease rather than firing a bare BEGIN at the
+    // pool, so a failure halfway rolls the whole import back.
+    static let supportsImport = true
     static let supportsExport = true
     static let supportsReadOnlyMode = true
 

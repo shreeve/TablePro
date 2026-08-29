@@ -5,6 +5,9 @@ import Foundation
 /// needs no connection state to be correct.
 public actor HarborClient {
     private var config: HarborClientConfig
+    /// The lease every statement is routed through while a transaction is
+    /// open. Nil the rest of the time, when one-shot is correct and cheaper.
+    private var sessionID: String?
     private let session: URLSession
 
     public init(config: HarborClientConfig, session: URLSession? = nil) {
@@ -47,6 +50,7 @@ public actor HarborClient {
     private func sqlBody(_ sql: String, params: [HarborParam], queryID: String?) throws -> Data {
         var payload: [String: Any] = ["sql": sql]
         if !params.isEmpty { payload["params"] = params.map { $0.jsonValue } }
+        if let sessionID { payload["sessionId"] = sessionID }
         if let queryID { payload["queryId"] = queryID }
         // Give harbor the same deadline the client is holding itself to, so a
         // timeout stops the work instead of merely stopping the waiting.
@@ -155,6 +159,32 @@ public actor HarborClient {
         try Self.check(response, body: data)
         return try JSONDecoder().decode(HarborInfo.self, from: data)
     }
+
+    // MARK: - Leases
+
+    /// Pin a connection and route subsequent statements to it.
+    @discardableResult
+    public func openSession() async throws -> HarborSession {
+        let request = try request(path: "/sql/sessions/new", method: "POST", body: Data("{}".utf8))
+        let (data, response) = try await session.data(for: request)
+        try Self.check(response, body: data)
+        let opened = try JSONDecoder().decode(HarborSession.self, from: data)
+        sessionID = opened.sessionId
+        return opened
+    }
+
+    /// Give the connection back. Best-effort on the wire but unconditional
+    /// locally: the id is cleared either way, because continuing to send a
+    /// lease harbor may already have reclaimed would route every later
+    /// statement at a session that no longer exists.
+    public func releaseSession() async {
+        guard let id = sessionID else { return }
+        sessionID = nil
+        guard let request = try? request(path: "/sql/sessions/\(id)", method: "DELETE") else { return }
+        _ = try? await session.data(for: request)
+    }
+
+    public var hasSession: Bool { sessionID != nil }
 
     /// Harbor's own view of the catalog, in one request.
     public func catalog() async throws -> HarborCatalog {

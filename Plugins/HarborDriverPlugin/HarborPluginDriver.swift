@@ -41,11 +41,11 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
         // flags above: nothing here generates that SQL yet. .parameterizedQueries
         // is new and earned — executeParameterized binds through harbor's
         // params rather than pasting literals into the statement.
-        [.multiSchema, .cancelQuery, .parameterizedQueries, .schemaCompare]
+        [.multiSchema, .cancelQuery, .parameterizedQueries, .transactions, .schemaCompare]
     }
 
     var supportsSchemas: Bool { true }
-    var supportsTransactions: Bool { false }
+    var supportsTransactions: Bool { true }
     var currentSchema: String? { lock.withLock { _schema } }
     var serverVersion: String? { lock.withLock { _serverVersion } }
 
@@ -132,6 +132,48 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
         // DELETE would be cancelled before it left the process, and harbor
         // would never hear that the user pressed Stop.
         Task.detached { await client.cancel(queryID: queryID) }
+    }
+
+    // MARK: - Transactions
+
+    /// A lease, not a bare BEGIN. PluginKit's default runs `BEGIN` as an
+    /// ordinary statement, which against harbor opens a transaction on
+    /// whichever pooled connection served that one request — the next
+    /// statement gets a different connection and runs outside it, and the
+    /// COMMIT that follows commits nothing. The lease pins one connection so
+    /// all three are the same one.
+    ///
+    /// Harbor reclaims a lease left idle past its idleTtlMs (30s by default),
+    /// so a transaction held open across user think-time can still be taken
+    /// back; the failure then surfaces on the next statement rather than
+    /// silently committing.
+    func beginTransaction() async throws {
+        guard let client else { throw HarborError.notConnected }
+        try await client.openSession()
+        do {
+            _ = try await client.execute("BEGIN")
+        } catch {
+            // Do not leave a pinned connection behind on a failed BEGIN.
+            await client.releaseSession()
+            throw error
+        }
+    }
+
+    func commitTransaction() async throws {
+        try await end("COMMIT")
+    }
+
+    func rollbackTransaction() async throws {
+        try await end("ROLLBACK")
+    }
+
+    /// The lease is released whatever the statement did. Holding it after a
+    /// failed COMMIT would keep a connection out of the pool and route later
+    /// one-shot work through a transaction nobody meant to still be open.
+    private func end(_ statement: String) async throws {
+        guard let client else { throw HarborError.notConnected }
+        defer { Task.detached { await client.releaseSession() } }
+        _ = try await client.execute(statement)
     }
 
     // MARK: - Execution

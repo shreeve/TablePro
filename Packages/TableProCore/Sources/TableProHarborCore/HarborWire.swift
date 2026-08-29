@@ -113,6 +113,22 @@ public struct HarborResultSet: Sendable {
     }
 }
 
+/// `POST /sql/sessions/new` — a lease on one pinned connection.
+///
+/// Harbor's ordinary /sql is one-shot and picks a pooled connection per
+/// request, so a bare BEGIN would open a transaction on one connection and the
+/// next statement would run on another. A lease is what makes the two the same
+/// connection, and it is the only way to hold a transaction across requests.
+///
+/// `idleTtlMs` is the one to respect: harbor reclaims a lease left idle that
+/// long, so a transaction held open across user think-time can be taken back
+/// mid-edit.
+public struct HarborSession: Decodable, Sendable {
+    public let sessionId: String
+    public let ttlMs: Int
+    public let idleTtlMs: Int
+}
+
 /// `GET /info` — the berth's identity. Its absence (404) is how a client
 /// tells a pre-fleet harbor from a current one, so callers treat a failure
 /// here as "old server", not "no server".
