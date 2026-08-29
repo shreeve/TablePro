@@ -150,7 +150,9 @@ extension MainContentCoordinator {
                         driver: driver, sql: request.sql, parameters: nil, rowCap: nil
                     )
                 }
-                let rawText = ExplainPlanTextFlattener.flatten(rows: fetchResult.rows)
+                let rawText = ExplainPlanTextFlattener.flatten(
+                    columns: fetchResult.columns, rows: fetchResult.rows
+                )
                 let plan = ExplainPlanParserRegistry.plan(from: rawText, format: request.format)
 
                 await MainActor.run { [weak self] in

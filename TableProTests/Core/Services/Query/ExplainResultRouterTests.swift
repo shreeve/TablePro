@@ -201,4 +201,17 @@ struct ExplainResultRouterTests {
             declaredVariants: mysqlVariants
         )
     }
+
+    @Test("A DuckDB labelled plan reaches the viewer without its key column")
+    func duckDBLabelledPlanRoutes() {
+        let rows: [[PluginCellValue]] = [[.text("physical_plan"), .text("╭─ Seq Scan ─╮")]]
+        let routed = ExplainResultRouter.route(
+            sql: "EXPLAIN SELECT 1",
+            columns: ["explain_key", "explain_value"],
+            rows: rows,
+            databaseType: .duckdb,
+            declaredVariants: []
+        )
+        #expect(routed?.rawText == "╭─ Seq Scan ─╮")
+    }
 }

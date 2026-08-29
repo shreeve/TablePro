@@ -17,10 +17,11 @@ enum ExplainResultRouter {
         let subjectSQL: String
     }
 
-    /// A plan either arrives in one column, or is multi-column output the app can actually read
-    /// as a tree. Requiring a successful parse for the multi-column case is what lets SQLite's
-    /// four-column `EXPLAIN QUERY PLAN` reach the viewer while MySQL's tabular `EXPLAIN`, which
-    /// no parser understands, stays in the results grid where it belongs.
+    /// A plan either arrives as a single plan, or is multi-column output the app can actually
+    /// read as a tree. Requiring a successful parse for the multi-column case is what lets
+    /// SQLite's four-column `EXPLAIN QUERY PLAN` reach the viewer while MySQL's tabular
+    /// `EXPLAIN`, which no parser understands, stays in the results grid where it belongs.
+    /// DuckDB's labelled pair counts as a single plan, since only one of its columns is one.
     static func route(
         sql: String,
         columns: [String],
@@ -30,7 +31,7 @@ enum ExplainResultRouter {
     ) -> RoutedPlan? {
         guard QueryClassifier.isExplainStatement(sql) else { return nil }
 
-        let text = ExplainPlanTextFlattener.flatten(rows: rows)
+        let text = ExplainPlanTextFlattener.flatten(columns: columns, rows: rows)
         guard !text.isEmpty else { return nil }
 
         let explainSQL = QueryClassifier.strippingLeadingComments(sql)
@@ -42,7 +43,9 @@ enum ExplainResultRouter {
         )
         let plan = ExplainPlanParserRegistry.plan(from: text, format: format)
 
-        guard columns.count == 1 || plan != nil else { return nil }
+        guard ExplainPlanTextFlattener.carriesSinglePlan(columns: columns) || plan != nil else {
+            return nil
+        }
 
         let subjectSQL = QueryClassifier.explainedStatement(in: explainSQL) ?? sql
         return RoutedPlan(

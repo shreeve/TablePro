@@ -106,7 +106,7 @@ struct ExplainPlanFormatResolutionTests {
     @Test("Single-column rows join with newlines")
     func flattensSingleColumn() {
         let rows: [[PluginCellValue]] = [[.text("a")], [.text("b")]]
-        #expect(ExplainPlanTextFlattener.flatten(rows: rows) == "a\nb")
+        #expect(ExplainPlanTextFlattener.flatten(columns: ["QUERY PLAN"], rows: rows) == "a\nb")
     }
 
     @Test("Multi-column rows join columns with tabs")
@@ -115,11 +115,13 @@ struct ExplainPlanFormatResolutionTests {
             [.text("1"), .text("0"), .text("0"), .text("SCAN users")],
             [.text("2"), .text("1"), .text("0"), .text("SEARCH orders")],
         ]
-        #expect(ExplainPlanTextFlattener.flatten(rows: rows) == "1\t0\t0\tSCAN users\n2\t1\t0\tSEARCH orders")
+        #expect(ExplainPlanTextFlattener.flatten(
+            columns: ["id", "parent", "notused", "detail"], rows: rows
+        ) == "1\t0\t0\tSCAN users\n2\t1\t0\tSEARCH orders")
     }
 
     @Test("No rows flatten to an empty string")
     func flattensEmptyRows() {
-        #expect(ExplainPlanTextFlattener.flatten(rows: []).isEmpty)
+        #expect(ExplainPlanTextFlattener.flatten(columns: [], rows: []).isEmpty)
     }
 }
