@@ -625,7 +625,8 @@ final class PluginMetadataRegistry: @unchecked Sendable {
                 tagline: existingSnapshot?.connection.tagline
                     ?? Self.fallbackTagline(forTypeId: driverType.databaseTypeId),
                 hidesBuiltInPassword: existingSnapshot?.connection.hidesBuiltInPassword ?? false,
-                hidesBuiltInDatabase: existingSnapshot?.connection.hidesBuiltInDatabase ?? false,
+                hidesBuiltInDatabase: driverType.hidesBuiltInDatabase
+                    || (existingSnapshot?.connection.hidesBuiltInDatabase ?? false),
                 defaultUnixSocketPath: existingSnapshot?.connection.defaultUnixSocketPath,
                 defaultHost: existingSnapshot?.connection.defaultHost
             )

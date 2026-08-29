@@ -61,6 +61,13 @@ public protocol DriverPlugin: TableProPlugin {
     static var navigationModel: NavigationModel { get }
     static var explainVariants: [ExplainVariant] { get }
     static var pathFieldRole: PathFieldRole { get }
+    /// Suppress the form's built-in Database field.
+    ///
+    /// For a driver whose container is decided by the server rather than
+    /// chosen by the user, the field is a prompt with no correct answer.
+    /// `hidesUsername` is already a per-field property; this is its
+    /// counterpart for the one built-in field that had no plugin-side switch.
+    static var hidesBuiltInDatabase: Bool { get }
     static var isDownloadable: Bool { get }
     static var postConnectActions: [PostConnectAction] { get }
     static var parameterStyle: ParameterStyle { get }
@@ -81,6 +88,8 @@ public protocol DriverPlugin: TableProPlugin {
 }
 
 public extension DriverPlugin {
+    static var hidesBuiltInDatabase: Bool { false }
+
     static var additionalConnectionFields: [ConnectionField] { [] }
     static var additionalDatabaseTypeIds: [String] { [] }
     static func driverVariant(for databaseTypeId: String) -> String? { nil }

@@ -179,6 +179,9 @@ targets:
       - target: ClickHouseDriver
         embed: true
         copy: { destination: plugins }
+      - target: HarborDriverPlugin
+        embed: true
+        copy: { destination: plugins }
       - target: RedisDriver
         embed: true
         copy: { destination: plugins }
@@ -1042,6 +1045,15 @@ targets:
       - package: TableProCore
         product: TableProTeradataCore
 
+  HarborDriverPlugin:
+    templates: [DriverPlugin]
+    templateAttributes:
+      folder: HarborDriverPlugin
+      principalClass: HarborPlugin
+    dependencies:
+      - package: TableProCore
+        product: TableProHarborCore
+
   TrinoDriverPlugin:
     templates: [DriverPlugin]
     templateAttributes:
@@ -1069,6 +1081,7 @@ aggregateTargets:
       - DynamoDBDriverPlugin
       - ElasticsearchDriverPlugin
       - EtcdDriverPlugin
+      - HarborDriverPlugin
       - JSONExport
       - JSONImport
       - KafkaDriverPlugin

@@ -21,6 +21,7 @@ let package = Package(
         .library(name: "TableProMSSQLCore", targets: ["TableProMSSQLCore"]),
         .library(name: "TableProTeradataCore", targets: ["TableProTeradataCore"]),
         .library(name: "TableProTrinoCore", targets: ["TableProTrinoCore"]),
+        .library(name: "TableProHarborCore", targets: ["TableProHarborCore"]),
         .library(name: "TableProNumberFormatting", targets: ["TableProNumberFormatting"])
     ],
     targets: [
@@ -88,6 +89,11 @@ let package = Package(
             name: "TableProTrinoCore",
             dependencies: [],
             path: "Sources/TableProTrinoCore"
+        ),
+        .target(
+            name: "TableProHarborCore",
+            dependencies: [],
+            path: "Sources/TableProHarborCore"
         ),
         .testTarget(
             name: "TableProNumberFormattingTests",
