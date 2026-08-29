@@ -39,7 +39,7 @@ A bearer token, minted by the berth on first start and written to `~/.config/har
 
 ## Schema editing
 
-Add, modify, drop and rename columns; create and drop indexes; rename and truncate tables. Editing a column on an indexed table takes the covering indexes down and rebuilds them in the same transaction, because DuckDB refuses `ALTER COLUMN` on a table any index depends on.
+Add, modify, drop and rename columns; create and drop indexes; rename and truncate tables. Editing a column on an indexed table takes the covering indexes down, alters the column, and rebuilds them, because DuckDB refuses `ALTER COLUMN` on a table any index depends on. The steps run one statement at a time: DuckDB keeps the dependency visible inside an open transaction, so the sequence cannot run as one. If the alter itself fails, recreate the index from the table's Indexes tab.
 
 An auto-incrementing column is created as a sequence plus a `DEFAULT nextval(…)`, since DuckDB has no `SERIAL` type.
 

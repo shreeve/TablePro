@@ -199,6 +199,12 @@ public enum HarborDDL {
     // Returns nil when an affected index cannot be rebuilt faithfully. An
     // expression index has no column list to rebuild from, and harbor reports
     // its text separately precisely so it is never mistaken for one.
+    /// The drop, the alter and the rebuild must run as separate auto-committed statements.
+    /// Wrapping them in one transaction cannot work: DuckDB keeps the index dependency visible
+    /// until the drop commits, so the alter fails with the same Catalog Error the drop was meant
+    /// to clear (measured on v2.0.0-alpha38195; the aborted transaction rolls back atomically).
+    /// The cost is that an alter that fails on its own, such as a lossy cast, leaves the index
+    /// dropped; the caller is the one in a position to recreate it.
     public static func modifyColumn(
         schema: String?,
         table: String,
