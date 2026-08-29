@@ -88,6 +88,20 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
         try await client.keepalive()
     }
 
+    /// Implemented, because the SDK's default is a silent no-op: the app's
+    /// query-timeout setting would otherwise be accepted in preferences and
+    /// change nothing at all. Both halves are set — the client's own deadline
+    /// and harbor's `timeoutMs` — because a client-side timeout alone stops
+    /// the waiting without stopping the work.
+    func applyQueryTimeout(_ seconds: Int) async throws {
+        guard let client else { return }
+        let timeout = HttpQueryTimeout(serverTimeoutSeconds: seconds)
+        await client.setTimeouts(
+            query: timeout.requestTimeoutInterval,
+            serverSeconds: max(seconds, 0)
+        )
+    }
+
     /// Implemented, because the SDK's default is a silent no-op: without this
     /// the sidebar would switch schema, nothing would change underneath, and
     /// every subsequent catalog read would quietly answer for `main`.
@@ -221,7 +235,10 @@ final class HarborPluginDriver: PluginDatabaseDriver, @unchecked Sendable {
             port: port,
             useTLS: useTLS,
             token: field.isEmpty ? config.password : field,
-            database: config.database
+            database: config.database,
+            controlTimeout: HttpQueryTimeout.sessionBootstrapRequestTimeout,
+            queryTimeout: HttpQueryTimeout.sessionResourceTimeout,
+            serverTimeoutSeconds: 0
         )
     }
 }

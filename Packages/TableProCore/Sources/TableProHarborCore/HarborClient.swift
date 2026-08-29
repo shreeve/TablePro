@@ -4,7 +4,7 @@ import Foundation
 /// URLSession; every call is independent, because harbor's one-shot `/sql`
 /// needs no connection state to be correct.
 public actor HarborClient {
-    private let config: HarborClientConfig
+    private var config: HarborClientConfig
     private let session: URLSession
 
     public init(config: HarborClientConfig, session: URLSession? = nil) {
@@ -13,7 +13,11 @@ public actor HarborClient {
             self.session = session
         } else {
             let configuration = URLSessionConfiguration.ephemeral
-            configuration.timeoutIntervalForRequest = config.timeoutSeconds
+            // The session-wide value governs the short calls; /sql overrides
+            // it per request below. The resource ceiling has to clear the
+            // longest query anyone might run, or it caps them all regardless.
+            configuration.timeoutIntervalForRequest = config.controlTimeout
+            configuration.timeoutIntervalForResource = max(config.queryTimeout, config.controlTimeout)
             // No cache: a berth's answers are live data, and a 200 replayed
             // from a URL cache would be a stale table quietly shown as fresh.
             configuration.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
@@ -35,6 +39,7 @@ public actor HarborClient {
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = body
+            request.timeoutInterval = config.queryTimeout
         }
         return request
     }
@@ -42,6 +47,9 @@ public actor HarborClient {
     private func sqlBody(_ sql: String, queryID: String?) throws -> Data {
         var payload: [String: Any] = ["sql": sql]
         if let queryID { payload["queryId"] = queryID }
+        // Give harbor the same deadline the client is holding itself to, so a
+        // timeout stops the work instead of merely stopping the waiting.
+        if config.serverTimeoutSeconds > 0 { payload["timeoutMs"] = config.serverTimeoutSeconds * 1_000 }
         if !config.database.isEmpty { payload["database"] = config.database }
         return try JSONSerialization.data(withJSONObject: payload)
     }
@@ -125,6 +133,14 @@ public actor HarborClient {
     public func cancel(queryID: String) async {
         guard let request = try? request(path: "/sql/queries/\(queryID)", method: "DELETE") else { return }
         _ = try? await session.data(for: request)
+    }
+
+    /// Re-arm the deadlines from the app's query-timeout setting. Only the
+    /// next statement is affected; one already streaming keeps the deadline it
+    /// started under.
+    public func setTimeouts(query: TimeInterval, serverSeconds: Int) {
+        config.queryTimeout = query
+        config.serverTimeoutSeconds = serverSeconds
     }
 
     // MARK: - Identity and liveness
